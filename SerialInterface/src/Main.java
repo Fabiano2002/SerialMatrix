@@ -8,9 +8,12 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 
+import javax.imageio.IIOException;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
+import javax.imageio.stream.FileImageOutputStream;
 import javax.imageio.stream.ImageInputStream;
+import javax.imageio.stream.ImageOutputStream;
 
 import com.fazecast.jSerialComm.*;
 
@@ -31,6 +34,7 @@ public class Main {
 	static int pid = 64000;
 	static long endd = 0;
 	static int baud = 250000;
+	public static String gifpath = "none";
 	static void getImg() throws IOException {
 		ImageReader reader = ImageIO.getImageReadersByFormatName("gif").next();
 		File input = new File(path);
@@ -85,22 +89,47 @@ public class Main {
 		try {
 			write(Gui.path,send,Gui.writer);
 		} catch (FileNotFoundException | UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
 			System.out.println("ERROR CODE 2");
 		}
 		}
 		p.writeBytes(send, send.length);
 	}
+	static GifSequenceWriter writer;
+	static ImageOutputStream output;
+	static boolean open = false;
+	
+	static void setgif(String path) throws FileNotFoundException, IOException {
+		output = new FileImageOutputStream(new File(path));
+	}
+	
+	static void writegifframe(int[][][] frame) throws IIOException, IOException {
+		    BufferedImage Image = new BufferedImage(8, 8, BufferedImage.TYPE_INT_RGB);
+		    for (int i = 0; i < 8; i++) {
+				for (int j = 0; j < 8; j++) {
+					Color col = new Color(frame[0][i][j], frame[1][i][j], frame[2][i][j]);
+					Image.setRGB(i, j, col.getRGB());
+				}
+			}
+		    if(open==false) {
+		    	writer = new GifSequenceWriter(output, Image.getType(), 0, true);
+		    	open = true;
+		    }
+		    writer.writeToSequence(Image);
+	}
+	
+	static void closegif() throws IOException {
+		writer.close();
+	    output.close();
+	}
 	
 	static void write(String path,byte[] txt,PrintWriter writer) throws FileNotFoundException, UnsupportedEncodingException {
-		
 		for (int i = 0; i < txt.length; i++) {
 			int s = Byte.toUnsignedInt(txt[i]);
 			writer.print(s + " ");
 		}
 	}
 	
-	static void render() {
+	static void render() throws IOException {
 		byte[] send = new byte[8];
 		for (int i = 0; i < 8; i++) {
 			if(rw != 8) {
@@ -141,6 +170,9 @@ public class Main {
 		}
 		p.writeBytes(send, send.length);
 		if(sl==8) {
+			if(!gifpath.equals("none")) {
+			writegifframe(mtx);
+			}
 			sendclean();
 			sl=0;
 			
@@ -202,6 +234,7 @@ public class Main {
 			mtx = Algorithm.colorline(pid);
 			pid-=6;
 			if((64000-pid)>= (255*3)) {
+				Main.finishalgorithm();
 				pid = 64000;
 			}
 		}
@@ -220,7 +253,6 @@ public class Main {
 		}
 		
 	}
-	
 	static int reassignPort(int port) {
 		if(port > SerialPort.getCommPorts().length) {
 			return 1;
@@ -230,7 +262,15 @@ public class Main {
 		return 0;
 	}
 	
-	static int main(String[] args) {
+	public static void finishalgorithm() {
+		if(!gifpath.equals("none")) {
+		System.out.println("Algorithm done. Closing Application!");
+		try {closegif();} catch (IOException e) {}
+		System.exit(0);
+		}
+	}
+	
+	static int main(String[] args) throws IOException {
 		System.out.println("Main Started.");
 		if(Gui.com > -1) {
 			reassignPort(Gui.com);
@@ -250,6 +290,13 @@ public class Main {
 			return 1;
 		}
 		pos = 0;
+		if(!gifpath.equals("none")) {
+		File target = new File(gifpath);
+			if(target.exists()) {
+				target.delete();
+			}
+		setgif(gifpath);
+		}
 		while(p.isOpen()) {
 			if(active == false && Gui.fenable == false) {
 				continue;

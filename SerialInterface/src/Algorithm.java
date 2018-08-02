@@ -44,6 +44,7 @@ public class Algorithm {
 			cr++;
 			if(cr==255) {
 				cs=0;
+				Main.finishalgorithm();
 			}
 		}
 		for (int i = 0; i < 3; i++) {

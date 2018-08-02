@@ -230,7 +230,7 @@ public class Gui extends Frame implements ActionListener,ItemListener,ChangeList
 				i++;
 				Main.baud=Integer.parseInt(args[i]);
 			}
-			if(args[i].equals("-dump")) {
+			if(args[i].equals("-dumptext")) {
 				i++;
 				path=args[i];
 				dump=true;
@@ -238,6 +238,10 @@ public class Gui extends Frame implements ActionListener,ItemListener,ChangeList
 					writer = new PrintWriter(path, "UTF-8");
 				} catch (FileNotFoundException | UnsupportedEncodingException e) {
 				}
+			}
+			if(args[i].equals("-dumpgif")) {
+				i++;
+				Main.gifpath = args[i];
 			}
 			if(args[i].equals("pi")) {
 				pi=true;
